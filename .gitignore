@@ -1,3 +1,11 @@
 ds_generator.exe
 ID3.txt
 SystemDecyzyjny.txt
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/SI_CW5.iml
+.idea/vcs.xml
+.idea/workspace.xml
+__pycache__/classes.cpython-36.pyc
+__pycache__/tools.cpython-36.pyc

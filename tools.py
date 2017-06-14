@@ -1,5 +1,4 @@
-import itertools as it
-import copy
+import math
 import classes
 
 
@@ -14,111 +13,130 @@ def get_system_objects(system_file):
     return objects
 
 
-def get_maximum_phi_size(paragon_system):
-    """Return number of most frequency value in paragon system."""
-    frequencies = {}
-    for paragon in paragon_system:
-        for article in paragon:
-            if article not in frequencies:
-                frequencies[article] = 1
-            else:
-                frequencies[article] += 1
-    return max(frequencies.values())
-
-
 # Apriori functions. <--------------------------------------------------------------------------------------------------
-def get_apriori_rules(paragon_system, phi):  # main Apriori function
-    """Classify tst_system by trn_system."""
-    rules = []
-    frequencies = get_frequencies(paragon_system)
-    f = get_start_f(frequencies, phi)
+def get_id3_tree(labels, system):
+    """Return decision tree calculated by ID3 algorithm."""
+    decisions = get_count_of_objects(system, -1)  # -1 is decision (one before last)
+    system_entropy = get_entropy(decisions)
 
-    while True:
-        c = get_c(f)
-        f = get_f(c, phi, paragon_system)
-        if len(f) != 0:
-            rules.append(copy.copy(f))
-        if len(f) < 2:
-            return get_associative_rules(rules, paragon_system)
+    nodes = get_nodes(system, labels, system_entropy)
+    root = get_root(nodes, labels)
+    find_leaves(root, labels)
+    find_decisions(root)
+    return root
 
 
-def get_frequencies(paragon_system):
-    """Set frequencies for paragon system in dictionary."""
-    frequencies = {}
-    for paragon in paragon_system:
-        for article in paragon:
-            if article not in frequencies:
-                frequencies[article] = 1
-            else:
-                frequencies[article] += 1
-    return frequencies
+def get_count_of_objects(system, nr_of_attribute):
+    """Return values of attribute and number of theirs."""
+    decisions = {}
+    for decision_object in system:
+        attribute_value = decision_object[nr_of_attribute]
+        if attribute_value not in decisions:
+            decisions[attribute_value] = 1
+        else:
+            decisions[attribute_value] += 1
+    return decisions
 
 
-def get_start_f(frequencies, phi):
-    """Return sorted list with values more frequency then phi."""
-    f = []
-    for item, value in frequencies.items():
-        if value >= phi:
-            f.append([item])
-    f.sort()
-    return f
+def get_entropy(data):
+    """Return entropy for values passed in argument."""
+    number_of_objects = sum(data.values())
+    entropy = 0
+    for value in data.values():
+        p = value / number_of_objects
+        entropy += get_part_of_entropy(p)
+    return entropy
 
 
-def get_c(f):
-    """Get candidates for next F."""
-    c = []
-    combination_length = len(f[0]) + 1  # f is list of list, f[0] is first list;
-    combinations = it.combinations(f, 2)
-    for combination in combinations:  # some transform are needed; c = [[value1, value2], [value3, value4], ...]
-        c_combination = []
-        for element in combination:
-            for article in element:
-                if article not in c_combination:
-                    c_combination.append(article)
-        if len(c_combination) == combination_length and apriori_intersection(c_combination, f):
-            add_unique(c_combination, c)
-    return c
+def get_part_of_entropy(p):
+    """Return part of sum to calculate entropy."""
+    return -p*(math.log2(p))
 
 
-def get_f(c, phi, paragon_system):
-    """Get candidates with frequency greater then f."""
-    f = []
-    for candidate in c:
-        frequency = get_number_of_occurrence(candidate, paragon_system)
-        if frequency >= phi:
-            f.append(candidate)
-    return f
+def get_nodes(system, attributes, system_entropy):
+    """Return nodes from system."""
+    nodes = []
+    for key, item in attributes.items():
+        node = classes.Node(item, system, system_entropy)
+        set_edges(node, key)
+        nodes.append(node)
+    return nodes
 
 
-def get_number_of_occurrence(articles, paragon_system):
-    """Return number of occurrence of element in paragon."""
-    counter = 0
-    for paragon_articles in paragon_system:
-        if are_element_in_element(articles, paragon_articles):
-            counter += 1
-    return counter
+def set_edges(node, index):
+    """Set profit in node and add their edges."""
+    dictionary_edges = get_count_of_objects(node.data, index)
+    for dictionary_edge in dictionary_edges:
+        edge = classes.Edge(dictionary_edge, node.data, index, dictionary_edges)
+        node.edges.append(edge)
+    node.calculate_profit()
 
 
-def apriori_intersection(articles, f):
-    combinations = it.combinations(articles, len(f[0]))
-    for combination in combinations:
-        if not is_list_in_list_of_lists(combination, f):
-            return False
-    return True
+def is_edge_leaf(value_decisions):
+    if len(value_decisions) == 1:
+        return True
+    return False
 
 
-def get_associative_rules(rules, paragon_system):
-    associative_rules = []
-    for row in rules:
-        for rule in row:
-            for index in range(len(rule)):
-                predecessors = rule[:]
-                del predecessors[index]
-                consequent = rule[index]
-                associative_rule = classes.AssociativeRule(predecessors, consequent)
-                associative_rule.calculate_quality(paragon_system)
-                associative_rules.append(associative_rule)
-    return associative_rules
+def get_data(system, value, index):
+    """Return data with value from index attribute."""
+    data = []
+    for decision_object in system:
+        if decision_object[index] == value:
+            data.append(decision_object)
+    return data
+
+
+def get_root(nodes, labels):
+    """Find node with highest profit."""
+    root = nodes[0]
+    for node in nodes[1:]:
+        if node.profit > root.profit:
+            root = node
+    nodes.remove(root)
+    remove_from_labels(labels, root.name)
+    return root
+
+
+def remove_from_labels(labels, name):
+    to_remove = ''
+    for key, item in labels.items():
+        if item == name:
+            to_remove = key
+    del labels[to_remove]
+
+
+def find_leaves(root, attributes):
+    edges = [edge for edge in root.edges if edge.decision is None]
+    if len(edges) == 0:
+        return  # recurrence end
+    else:
+        for edge in edges:
+            if len(attributes) == 0:
+                return  # recurrence end
+            next_nodes = get_nodes(edge.data, attributes, edge.entropy)
+            next_root = get_root(next_nodes, attributes)
+            edge.node = next_root
+            find_leaves(next_root, attributes)
+
+
+def get_labels(nodes):
+    labels = []
+    for node in nodes:
+        labels.append(node.name)
+    return labels
+
+
+def find_decisions(element):
+    if type(element) is classes.Node:
+        for edge in element.edges:
+            find_decisions(edge)
+    else:
+        if element.node is None and element.decision is None:
+            element.decision = max(element.decisions, key=element.decisions.get)
+            return
+        if element.node is not None:
+            find_decisions(element.node)
 
 
 # Other functions. <----------------------------------------------------------------------------------------------------

@@ -1,0 +1,15 @@
+Dzien Pogoda Temperatura Wilgotnosc Wiatr Gram_w_Tenisa
+D1 Sloneczna Goraco Wysoka Slaby Nie
+D2 Sloneczna Goraco Wysoka Mocny Nie
+D3 Pochmurna Goraco Wysoka Slaby Tak
+D4 Deszczowa Lagodnie Wysoka Slaby Tak
+D5 Deszczowa Chlodno Normalna Slaby Tak
+D6 Deszczowa Chlodno Normalna Mocny Nie
+D7 Pochmurna Chlodno Normalna Mocny Tak
+D8 Sloneczna Lagodnie Wysoka Slaby Nie
+D9 Sloneczna Chlodno Normalna Slaby Tak
+D10 Deszczowa Lagodnie Normalna Slaby Tak
+D11 Sloneczna Lagodnie Normalna Mocny Tak
+D12 Pochmurna Lagodnie Wysoka Mocny Tak
+D13 Pochmurna Goraco Normalna Slaby Tak
+D14 Deszczowa Lagodnie Wysoka Mocny Nie

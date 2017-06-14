@@ -1,51 +1,62 @@
 import tools
+class_id = 1
 
 
-class AssociativeRule:
-    def __init__(self, predecessors, consequent):
-        self.predecessors = predecessors
-        self.consequent = consequent
-        self.support = None
-        self.trust = None
-        self.quality = None
+class Node:
+    def __init__(self, name, data, profit):
+        global class_id
+        self.name = name
+        self.data = data
+        self.profit = profit
+        self.edges = []
+        self.id = class_id
+        class_id += 1
 
-    def calculate_quality(self, paragon_system):
-        """Calculate support, trust and quality for Associative Rule."""
-        predecessor_consequent_count, predecessor_count = self.__get_data_for_quality(paragon_system)
-        self.__calculate_support(predecessor_consequent_count, len(paragon_system))
-        self.__calculate_trust(predecessor_consequent_count, predecessor_count)
-        self.quality = self.support * self.trust
+    def calculate_profit(self):
+        for edge in self.edges:
+            self.profit -= edge.profit
 
-    def __get_data_for_quality(self, paragon_system):
-        """Return data for calculate quality."""
-        predecessor_consequent_count = 0
-        predecessor_count = 0
-        for articles in paragon_system:
-            predecessor_consequent = self.predecessors[:]
-            predecessor_consequent.append(self.consequent)
-            if tools.are_element_in_element(predecessor_consequent, articles):
-                predecessor_consequent_count += 1
-            if tools.are_element_in_element(self.predecessors, articles):
-                predecessor_count += 1
-        return predecessor_consequent_count, predecessor_count
 
-    def __calculate_support(self, predecessor_consequent_count, number_of_objects):
-        """Calculate support of rule."""
-        self.support = predecessor_consequent_count / number_of_objects
+class Edge:
+    def __init__(self, name, data, index, edges):
+        global class_id
+        self.name = name
+        self.data = self.get_data(data, name, index)
+        self.decisions = self.get_decisions()
+        self.decision = self.get_decision()
+        self.entropy = tools.get_entropy(self.decisions)
+        self.profit = self.calculate_profit(edges[self.name], sum(edges.values()))
+        self.node = None
+        self.id = class_id
+        class_id += 1
 
-    def __calculate_trust(self, predecessor_consequent_count, predecessor_count):
-        """Calculate support of rule."""
-        self.trust = predecessor_consequent_count / predecessor_count
+    def calculate_profit(self, counter, denominator):
+        return self.entropy * counter / denominator
 
-    def print_rule(self):
-        a = ""
-        for predecessor in self.predecessors:
-            a += "{} ^ ".format(predecessor)
-        a = a[:-3]
-        a += " => {}".format(self.consequent)
-        return a
+    def get_data(self, system, value, index):
+        data = []
+        for decision_object in system:
+            if decision_object[index] == value:
+                data.append(decision_object)
+        return data
 
-    def is_rule_quality(self, thresholds):
-        if self.support >= thresholds[0] and self.trust >= thresholds[1] and self.quality >= thresholds[2]:
+    def get_decisions(self):
+        decisions = {}
+        for decision_object in self.data:
+            attribute_value = decision_object[-1]
+            if attribute_value not in decisions:
+                decisions[attribute_value] = 1
+            else:
+                decisions[attribute_value] += 1
+        return decisions
+
+    def is_edge_leaf(self):
+        if len(self.decisions) == 1:
             return True
         return False
+
+    def get_decision(self):
+        if self.is_edge_leaf():
+            return next(iter(self.decisions))
+        else:
+            return None
